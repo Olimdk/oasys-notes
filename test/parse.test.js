@@ -1,3 +1,4 @@
+process.env.OASYS_VAULT = require('fs').mkdtempSync('/tmp/oasys-test-vault-');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const notes = require('../lib/notes');

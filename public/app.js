@@ -1,48 +1,28 @@
 // ---- OASys Notes SPA (renderer) ----
-// Native desktop (Electron) — talks to the file engine via window.oasys.
-// No AI UI: any AI/agent with system access edits the vault files directly.
-const state = { current: null, index: [] };
+const state = { current: null, index: [], tree: [] };
 let rawBody = '';
 const $ = id => document.getElementById(id);
 
-async function api(p, opts) {
-  opts = opts || {};
-  const m = opts.method || 'GET';
-  if (p === '/api/tree') return window.oasys.list();
-  if (p === '/api/index') return window.oasys.index();
-  if (p === '/api/graph') return window.oasys.graph();
-  if (p === '/api/schemas') return window.oasys.schemas();
-  if (p.startsWith('/api/note/')) {
-    const rel = decodeURIComponent(p.replace('/api/note/', ''));
-    if (m === 'PUT') return window.oasys.write(rel, JSON.parse(opts.body));
-    if (m === 'PATCH') return window.oasys.patch(rel, JSON.parse(opts.body).props);
-    return window.oasys.read(rel);
-  }
-  throw new Error('unknown ' + p);
-}
-
-function renderTree(files) {
-  const tree = $('tree'); tree.innerHTML = '';
-  const root = {};
-  for (const f of files) {
-    const parts = f.split('/');
-    let node = root;
-    parts.forEach((p, i) => { node[p] = node[p] || {}; if (i === parts.length - 1) node[p].__file = f; node = node[p]; });
-  }
-  const walk = (node, name, depth) => {
-    if (name !== undefined) {
-      if (node.__file) {
-        const el = document.createElement('div'); el.className = 'file';
-        el.textContent = '▸ ' + name;
-        el.style.paddingLeft = (depth * 12 + 8) + 'px'; el.onclick = () => openFile(node.__file); tree.appendChild(el);
+function renderTree(nodes, container, depth = 0) {
+  container.innerHTML = '';
+  const render = (nodes, depth) => {
+    for (const n of nodes) {
+      const el = document.createElement('div');
+      el.className = n.type;
+      el.textContent = n.name;
+      el.style.paddingLeft = (depth * 12 + 4) + 'px';
+      if (n.type === 'file') {
+        el.onclick = () => openFile(n.path);
+        el.dataset.rel = n.path;
       } else {
-        const el = document.createElement('div'); el.className = 'folder'; el.textContent = '▾ ' + name;
-        el.style.paddingLeft = (depth * 12) + 'px'; tree.appendChild(el);
+        el.dataset.folder = n.path;
       }
+      el.addEventListener('contextmenu', e => { e.preventDefault(); showCtxMenu(e, n); });
+      container.appendChild(el);
+      if (n.children && n.children.length) render(n.children, depth + 1);
     }
-    for (const k of Object.keys(node)) { if (k === '__file') continue; walk(node[k], k, depth + (name === undefined ? 0 : 1)); }
   };
-  walk(root, undefined, 0);
+  render(nodes, depth);
 }
 function renderMarkdown(md) {
   return md
@@ -61,7 +41,7 @@ function bindWikiLinks() {
 function resolveLink(target) {
   const hit = state.index.find(x => x.title === target);
   if (hit) return openFile(hit.rel);
-  if (confirm(`Create note "${target}"?`)) createNote(target);
+  if (confirm(`Create note "${target}"?`)) createNote(target, '');
 }
 async function openFile(rel) {
   state.current = rel;
@@ -79,14 +59,43 @@ async function openFile(rel) {
   $('backlinks').querySelectorAll('a[data-file]').forEach(a => a.onclick = () => openFile(a.dataset.file));
   if (!$('sidepanel').hidden) showJSON(n);
 }
-async function createNote(title) {
-  const rel = title.replace(/[^\w -]/g, '') + '.md';
+async function createNote(title, folder) {
+  const base = (folder ? folder + '/' : '') + title.replace(/[^\w -]/g, '');
+  const rel = base + '.md';
   const type = prompt('Type (note/project/person):', 'note') || 'note';
-  await window.oasys.write(rel, { type, props: { title }, body: '# ' + title + '\n\n' });
+  await window.oasys.create(rel, { type, props: { title }, body: '# ' + title + '\n\n' });
   await refresh(); openFile(rel);
 }
+function showCtxMenu(e, node) {
+  const menu = $('ctxMenu');
+  menu.innerHTML = '';
+  const add = (label, fn) => { const d = document.createElement('div'); d.textContent = label; d.onclick = () => { menu.hidden = true; fn(); }; menu.appendChild(d); };
+  if (node.type === 'folder' || node.name === undefined) {
+    add('📁 New folder here', () => {
+      const name = prompt('Folder name:'); if (name) window.oasys.mkdir((node.path ? node.path + '/' : '') + name).then(refresh);
+    });
+    add('📄 New note here', () => {
+      const name = prompt('Note name:'); if (name) createNote(name, node.path || '');
+    });
+  }
+  if (node.type === 'file') {
+    add('✏️ Rename', () => {
+      const name = prompt('New name (without .md):', node.name.replace(/\.md$/, ''));
+      if (name) window.oasys.rename(node.path, node.path.replace(/[^/]+$/, name.replace(/[^\w -]/g, '') + '.md')).then(refresh);
+    });
+    add('🗑 Delete', () => {
+      if (confirm('Delete ' + node.name + '?')) window.oasys.remove(node.path).then(() => { if (state.current === node.path) state.current = null; refresh(); });
+    });
+  }
+  add('➕ New note (root)', () => { const t = prompt('Note name:'); if (t) createNote(t, ''); });
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.hidden = false;
+}
+document.addEventListener('click', e => { if (!e.target.closest('#ctxMenu')) $('ctxMenu').hidden = true; });
+
 $('editor').addEventListener('blur', () => { if (state.current) rawBody = $('editor').innerText; });
-$('newBtn').onclick = () => { const t = prompt('New note title:'); if (t) createNote(t); };
+$('newBtn').onclick = () => { const t = prompt('New note title:'); if (t) createNote(t, ''); };
 
 let graphData = null;
 $('graphBtn').onclick = async () => {
@@ -132,5 +141,9 @@ function showJSON(n) {
   $('sidepanel').innerHTML = '<h3 class="mono">// structured (agent-visible)</h3><pre class="mono">' +
     JSON.stringify({ type: rest.type, props: rest.props, links: rest.links }, null, 2) + '</pre>';
 }
-async function refresh() { state.index = await window.oasys.index(); renderTree(await window.oasys.list()); }
+async function refresh() {
+  state.index = await window.oasys.index();
+  state.tree = await window.oasys.tree();
+  renderTree(state.tree, $('tree'));
+}
 refresh().then(() => openFile('Index.md'));

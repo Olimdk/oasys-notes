@@ -1,3 +1,4 @@
+process.env.OASYS_VAULT = require('fs').mkdtempSync('/tmp/oasys-test-vault-');
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -6,8 +7,6 @@ const notes = require('../lib/notes');
 const VAULT = notes.VAULT;
 
 before(() => {
-  fs.mkdirSync(VAULT, { recursive: true });
-  for (const f of fs.readdirSync(VAULT)) fs.rmSync(path.join(VAULT, f), { recursive: true, force: true });
   notes.seedDemoVault();
 });
 after(() => { for (const f of fs.readdirSync(VAULT)) fs.rmSync(path.join(VAULT, f), { recursive: true, force: true }); });
