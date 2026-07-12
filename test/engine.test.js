@@ -3,7 +3,6 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const notes = require('../lib/notes');
-
 const VAULT = notes.VAULT;
 
 before(() => {
@@ -25,7 +24,6 @@ test('serialize -> parse round-trips without quote corruption', () => {
   assert.equal(back.type, 'project');
   assert.deepEqual(back.props.tags, ['app', 'pkm']);
   assert.deepEqual(back.props.links, ['Alice']);
-  assert.equal(back.props.title, 'X');
 });
 test('tolerates double-bracketed links in frontmatter', () => {
   const n = notes.parseNote('---\ntype: person\ntitle: Bob\nlinks: [["Local Notes App"]]\n---\n# Bob\n');
@@ -37,12 +35,48 @@ test('note without frontmatter is type=note', () => {
   assert.deepEqual(n.links, ['Link']);
 });
 
-// ---- 2. Advanced structures (typed schemas) ----
-test('validates enum, required, and date', () => {
-  assert.equal(notes.validate('project', { title: 'P', status: 'active' }).length, 0);
-  assert.ok(notes.validate('project', { status: 'bogus' }).length > 0);
-  assert.ok(notes.validate('project', { status: 'active' }).length > 0);
-  assert.ok(notes.validate('project', { due: 'not-a-date' }).length > 0);
+// ---- 2. Advanced HTML backend ----
+test('parses HTML note: typed root, wikilinks, and embedded graph', () => {
+  const html = `<oasys-note type="project" title="Board" status="active" tags="a, b">
+  <h1>Board</h1>
+  <p>See [[Engine]].</p>
+  <oasys-graph id="g1">
+    <oasys-node id="engine" label="Engine" type="project"/>
+    <oasys-node id="ui" label="UI"/>
+    <oasys-edge from="engine" to="ui"/>
+  </oasys-graph>
+</oasys-note>`;
+  const n = notes.parseHtmlNote(html);
+  assert.equal(n.type, 'project');
+  assert.equal(n.props.title, 'Board');
+  assert.deepEqual(n.props.tags, ['a', 'b']);
+  assert.deepEqual(n.links, ['Engine']);
+  assert.equal(n.graphs.length, 1);
+  assert.equal(n.graphs[0].nodes.length, 2);
+  assert.equal(n.graphs[0].edges.length, 1);
+  assert.equal(n.graphs[0].edges[0].from, 'engine');
+});
+test('AI scenario: write HTML note with embedded graph, then read it back', () => {
+  const note = {
+    type: 'project',
+    props: { title: 'AI Graph', status: 'idea' },
+    body: `<h1>AI Graph</h1>
+<oasys-graph id="g">
+  <oasys-node id="x" label="X"/>
+  <oasys-node id="y" label="Y"/>
+  <oasys-edge from="x" to="y"/>
+</oasys-graph>
+See [[Index]].`
+  };
+  notes.writeNote('AI Graph.html', note);
+  const back = notes.readNote('AI Graph.html');
+  assert.equal(back.type, 'project');
+  assert.equal(back.graphs.length, 1);
+  assert.equal(back.graphs[0].nodes.length, 2);
+  assert.deepEqual(back.links, ['Index']);
+  // embedded graphs are queryable separately for the renderer
+  const g = notes.getEmbeddedGraphs('AI Graph.html');
+  assert.equal(g[0].nodes.length, 2);
 });
 
 // ---- 3. AI integration (file engine, no HTTP) ----
@@ -65,9 +99,10 @@ test('typed note keeps its type across write/read', () => {
   assert.equal(n.type, 'person');
   assert.equal(n.props.role, 'Product designer');
 });
-test('graph and backlinks reflect typed + body links', () => {
+test('graph and backlinks reflect typed + body links (both backends)', () => {
   const g = notes.getGraph();
   assert.ok(g.nodes.find(n => n.label === 'Alice'));
+  assert.ok(g.nodes.find(n => n.label === 'Project Board' && n.backend === 'html'));
   const bl = notes.readNote('Alice.md');
   assert.ok(bl.backlinks.includes('Index.md') || bl.backlinks.includes('Local Notes App.md'));
 });

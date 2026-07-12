@@ -18,6 +18,15 @@ links: [["Getting Started"], ["Alice"]]`;
   assert.deepEqual(o.tags, ['app', 'pkm']);
   assert.deepEqual(o.links, ['Getting Started', 'Alice']);
 });
+test('parseHtmlNote extracts attributes, links and graphs', () => {
+  const html = `<oasys-note type="x" title="T" tags="a, b"><p>[[L]]</p>
+  <oasys-graph id="g"><oasys-node id="n" label="N"/><oasys-edge from="n" to="n"/></oasys-graph></oasys-note>`;
+  const n = notes.parseHtmlNote(html);
+  assert.equal(n.type, 'x');
+  assert.deepEqual(n.props.tags, ['a', 'b']);
+  assert.deepEqual(n.links, ['L']);
+  assert.equal(n.graphs[0].id, 'g');
+});
 test('parseNote extracts type, props, body, links', () => {
   const n = notes.parseNote(`---
 type: project
