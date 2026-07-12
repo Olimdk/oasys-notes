@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>OASys Notes</title>
+<link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+<header>
+  <strong>🗒 OASys Notes</strong>
+  <span class="spacer"></span>
+  <button id="newBtn">+ New</button>
+  <button id="graphBtn">Graph</button>
+  <button id="aiBtn">AI Edit</button>
+  <button id="jsonBtn">JSON</button>
+</header>
+<main>
+  <aside id="tree"></aside>
+  <section id="content">
+    <input id="title" placeholder="note title" disabled/>
+    <div id="props" class="props"></div>
+    <div id="editor" contenteditable="true"></div>
+    <div id="backlinks"></div>
+  </section>
+  <aside id="sidepanel" hidden></aside>
+  <canvas id="graph" hidden></canvas>
+</main>
+<div id="aiPanel" hidden>
+  <h3>Local AI edit</h3>
+  <p class="hint">Proposes a change; you approve &amp; it writes (or patches one field).</p>
+  <textarea id="aiPrompt" placeholder="e.g. set status to done and add tag 'shipped'"></textarea>
+  <div class="row">
+    <button id="aiRun">Generate</button>
+    <button id="aiApply" disabled>Approve &amp; Write</button>
+    <button id="aiCancel">Cancel</button>
+  </div>
+  <pre id="aiDiff"></pre>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
