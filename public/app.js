@@ -44,9 +44,10 @@ function resolveLink(target) {
   if (confirm(`Create note "${target}"?`)) createNote(target, '');
 }
 async function openFile(rel) {
+  if (!rel) return;
   state.current = rel;
   const n = await window.oasys.read(rel);
-  if (!n || n.error) return;
+  if (!n || n.error) { $('title').value = ''; $('props').innerHTML = ''; $('editor').innerHTML = '<p style="color:#666">Note not found.</p>'; return; }
   rawBody = n.body || '';
   $('title').value = n.props.title || rel.replace(/\.md$/, '').split('/').pop();
   const skip = ['type', 'title'];
@@ -146,4 +147,7 @@ async function refresh() {
   state.tree = await window.oasys.tree();
   renderTree(state.tree, $('tree'));
 }
-refresh().then(() => openFile('Index.md'));
+refresh().then(async () => {
+  const first = state.index[0];
+  if (first) openFile(first.rel);
+});
