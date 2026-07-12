@@ -1,5 +1,6 @@
 // ---- OASys Notes SPA (renderer) ----
-// Talks to the main process via window.oasys — NEVER over HTTP/localhost.
+// Native desktop (Electron) — talks to the file engine via window.oasys.
+// No AI UI: any AI/agent with system access edits the vault files directly.
 const state = { current: null, index: [] };
 let rawBody = '';
 const $ = id => document.getElementById(id);
@@ -32,10 +33,10 @@ function renderTree(files) {
     if (name !== undefined) {
       if (node.__file) {
         const el = document.createElement('div'); el.className = 'file';
-        el.textContent = (node.__file.endsWith('.html') ? '🌐 ' : '📄 ') + name;
+        el.textContent = '▸ ' + name;
         el.style.paddingLeft = (depth * 12 + 8) + 'px'; el.onclick = () => openFile(node.__file); tree.appendChild(el);
       } else {
-        const el = document.createElement('div'); el.className = 'folder'; el.textContent = '📁 ' + name;
+        const el = document.createElement('div'); el.className = 'folder'; el.textContent = '▾ ' + name;
         el.style.paddingLeft = (depth * 12) + 'px'; tree.appendChild(el);
       }
     }
@@ -43,47 +44,6 @@ function renderTree(files) {
   };
   walk(root, undefined, 0);
 }
-
-// Render an HTML note body: keep it as real DOM, but replace <oasys-graph> with a live canvas.
-function renderHtmlNote(n) {
-  const container = document.createElement('div');
-  container.innerHTML = n.body;
-  // Render embedded graphs as interactive canvases.
-  container.querySelectorAll('oasys-graph').forEach(g => renderEmbeddedGraph(g));
-  // Make wikilinks in text clickable.
-  container.innerHTML = container.innerHTML.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
-    (m, t, label) => `<a class="wikilink" data-target="${t.trim()}">${label || t.trim()}</a>`);
-  return container.innerHTML;
-}
-function renderEmbeddedGraph(gEl) {
-  const id = gEl.getAttribute('id') || 'g';
-  const nodes = [...gEl.querySelectorAll('oasys-node')].map(n => ({ id: n.getAttribute('id'), label: n.getAttribute('label') || n.getAttribute('id'), type: n.getAttribute('type') }));
-  const edges = [...gEl.querySelectorAll('oasys-edge')].map(e => ({ from: e.getAttribute('from'), to: e.getAttribute('to') }));
-  const canvas = document.createElement('canvas');
-  canvas.width = 460; canvas.height = 240; canvas.className = 'embed-graph';
-  gEl.replaceWith(canvas);
-  drawEmbeddedGraph(canvas, nodes, edges);
-}
-function drawEmbeddedGraph(canvas, nodes, edges) {
-  const ctx = canvas.getContext('2d');
-  const pos = {};
-  nodes.forEach((n, i) => { pos[n.id] = { x: 60 + (i % 3) * 160, y: 50 + Math.floor(i / 3) * 90, vx: 0, vy: 0 }; });
-  function step() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const e of edges) {
-      const a = pos[e.from], b = pos[e.to]; if (!a || !b) continue;
-      ctx.strokeStyle = '#666'; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    }
-    for (const n of nodes) {
-      const p = pos[n.id]; if (!p) continue;
-      ctx.fillStyle = n.type === 'project' ? '#c586c0' : n.type === 'person' ? '#4ec9b0' : '#569cd6';
-      ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, 7); ctx.fill();
-      ctx.fillStyle = '#ccc'; ctx.fillText(n.label || n.id, p.x + 12, p.y + 4);
-    }
-  }
-  step();
-}
-
 function renderMarkdown(md) {
   return md
     .replace(/^###### (.*)$/gm, '<h6>$1</h6>').replace(/^##### (.*)$/gm, '<h5>$1</h5>')
@@ -108,25 +68,21 @@ async function openFile(rel) {
   const n = await window.oasys.read(rel);
   if (!n || n.error) return;
   rawBody = n.body || '';
-  $('title').value = n.props.title || rel.replace(/\.(md|html)$/, '').split('/').pop();
+  $('title').value = n.props.title || rel.replace(/\.md$/, '').split('/').pop();
   const skip = ['type', 'title'];
   $('props').innerHTML = Object.entries(n.props).filter(([k]) => !skip.includes(k))
     .map(([k, v]) => `<span class="chip"><b>${k}:</b> ${Array.isArray(v) ? v.join(', ') : v}</span>`).join('');
-  $('editor').innerHTML = rel.endsWith('.html') ? renderHtmlNote(n) : renderMarkdown(rawBody);
+  $('editor').innerHTML = renderMarkdown(rawBody);
   bindWikiLinks();
   $('backlinks').innerHTML = (n.backlinks && n.backlinks.length)
-    ? '<b>Backlinks:</b> ' + n.backlinks.map(b => `<a data-file="${b}">${b}</a>`).join(', ') : '';
+    ? '<b>↩ backlinks:</b> ' + n.backlinks.map(b => `<a data-file="${b}">${b}</a>`).join(', ') : '';
   $('backlinks').querySelectorAll('a[data-file]').forEach(a => a.onclick = () => openFile(a.dataset.file));
   if (!$('sidepanel').hidden) showJSON(n);
 }
 async function createNote(title) {
-  const kind = prompt('Backend? (md / html):', 'md') || 'md';
-  const rel = title.replace(/[^\w -]/g, '') + (kind === 'html' ? '.html' : '.md');
+  const rel = title.replace(/[^\w -]/g, '') + '.md';
   const type = prompt('Type (note/project/person):', 'note') || 'note';
-  const body = kind === 'html'
-    ? `<h1>${title}</h1>\n<p>New note.</p>`
-    : '# ' + title + '\n\n';
-  await window.oasys.write(rel, { type, props: { title }, body });
+  await window.oasys.write(rel, { type, props: { title }, body: '# ' + title + '\n\n' });
   await refresh(); openFile(rel);
 }
 $('editor').addEventListener('blur', () => { if (state.current) rawBody = $('editor').innerText; });
@@ -154,14 +110,14 @@ function drawGraph() {
       const pa = pos[l.source], pb = pos[l.target];
       const dx = pb.x - pa.x, dy = pb.y - pa.y, d = Math.hypot(dx, dy) || 1;
       pa.vx += dx / d * 0.02; pa.vy += dy / d * 0.02; pb.vx -= dx / d * 0.02; pb.vy -= dy / d * 0.02;
-      ctx.strokeStyle = '#555'; ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+      ctx.strokeStyle = '#2a2a2a'; ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
     }
     for (const n of graphData.nodes) {
       const p = pos[n.id]; p.x += p.vx; p.y += p.vy; p.vx *= 0.85; p.vy *= 0.85;
       p.x = Math.max(10, Math.min(c.width - 10, p.x)); p.y = Math.max(10, Math.min(c.height - 10, p.y));
-      ctx.fillStyle = n.type === 'project' ? '#c586c0' : n.type === 'person' ? '#4ec9b0' : '#569cd6';
+      ctx.fillStyle = n.type === 'project' ? '#c15f3c' : n.type === 'person' ? '#4ec9b0' : '#e0e0e0';
       ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, 7); ctx.fill();
-      ctx.fillStyle = '#ccc'; ctx.fillText(n.label, p.x + 8, p.y + 3);
+      ctx.fillStyle = '#e0e0e0'; ctx.fillText(n.label, p.x + 8, p.y + 3);
     }
     requestAnimationFrame(step);
   }
@@ -172,33 +128,9 @@ $('jsonBtn').onclick = () => {
   if (!sp.hidden && state.current) window.oasys.read(state.current).then(showJSON);
 };
 function showJSON(n) {
-  const { rel, backlinks, body, graphs, ...rest } = n;
-  const extra = graphs && graphs.length ? '\n"embedded_graphs": ' + JSON.stringify(graphs) : '';
-  $('sidepanel').innerHTML = '<h3>Structured (AI-visible)</h3><pre>' +
-    JSON.stringify({ type: rest.type, props: rest.props, links: rest.links }, null, 2) + extra + '</pre>';
+  const { rel, backlinks, body, ...rest } = n;
+  $('sidepanel').innerHTML = '<h3 class="mono">// structured (agent-visible)</h3><pre class="mono">' +
+    JSON.stringify({ type: rest.type, props: rest.props, links: rest.links }, null, 2) + '</pre>';
 }
-let _patch = null;
-$('aiBtn').onclick = () => { $('aiPanel').hidden = !$('aiPanel').hidden; };
-$('aiCancel').onclick = () => { $('aiPanel').hidden = true; };
-$('aiRun').onclick = async () => {
-  const prompt = $('aiPrompt').value; const props = {};
-  const m = prompt.match(/status\s+(?:to\s+)?(\w+)/i); if (m) props.status = m[1];
-  const t = prompt.match(/tag\s+['"]?([\w-]+)['"]?/i);
-  if (t) { const n = await window.oasys.read(state.current);
-    const tags = Array.isArray(n.props.tags) ? [...n.props.tags] : []; if (!tags.includes(t[1])) tags.push(t[1]); props.tags = tags; }
-  try {
-    const ai = await window.oasys.ai({ model: 'llama3.1', prompt: `Fields: ${JSON.stringify(props)}. Instruction: ${prompt}. Return only JSON fields to change.` });
-    if (ai && ai.ok) { try { Object.assign(props, JSON.parse(ai.text)); } catch {} }
-  } catch {}
-  _patch = { rel: state.current, props };
-  $('aiDiff').textContent = 'PATCH ' + state.current + '\n' + JSON.stringify(props, null, 2);
-  $('aiApply').disabled = false;
-};
-$('aiApply').onclick = async () => {
-  if (!_patch) return;
-  try { await window.oasys.patch(_patch.rel, _patch.props); }
-  catch (e) { alert('Validation: ' + (e.details || e.message).join('\n')); return; }
-  $('aiPanel').hidden = true; $('aiApply').disabled = true; openFile(_patch.rel);
-};
 async function refresh() { state.index = await window.oasys.index(); renderTree(await window.oasys.list()); }
 refresh().then(() => openFile('Index.md'));

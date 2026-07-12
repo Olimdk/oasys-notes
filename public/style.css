@@ -1,31 +1,33 @@
+/* OASys Notes — theme matches the OASys TUI (Textual CSS in oasys/app.py):
+   bg #0c0c0c, border #2a2a2a, text #e0e0e0, accent #c15f3c, dim #666/#444, err #cc4444 */
 * { box-sizing: border-box; }
-body { margin:0; font-family: system-ui, sans-serif; background:#1e1e1e; color:#ddd; }
-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#252526; border-bottom:1px solid #333; }
+body { margin:0; font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; background:#0c0c0c; color:#e0e0e0; }
+header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#0c0c0c; border-bottom:1px solid #2a2a2a; }
+.brand { color:#c15f3c; letter-spacing:1px; }
 header .spacer { flex:1; }
-button { background:#3a3a3a; color:#ddd; border:1px solid #555; padding:6px 10px; border-radius:6px; cursor:pointer; }
-button:hover { background:#454545; }
+button {
+  background:#0c0c0c; color:#e0e0e0; border:1px solid #2a2a2a; padding:6px 10px;
+  border-radius:4px; cursor:pointer; font-family:inherit; font-size:13px;
+}
+button:hover { border-color:#c15f3c; color:#c15f3c; }
 main { display:flex; height: calc(100vh - 45px); }
-#tree { width:220px; overflow:auto; padding:10px; background:#212121; border-right:1px solid #333; font-size:14px; }
-#tree .folder { color:#9cdcfe; margin-top:6px; }
-#tree .file { padding:2px 0 2px 12px; cursor:pointer; }
-#tree .file:hover { color:#fff; }
+#tree { width:240px; overflow:auto; padding:10px; background:#0c0c0c; border-right:1px solid #2a2a2a; font-size:13px; }
+#tree .folder { color:#666666; margin-top:6px; }
+#tree .file { padding:2px 0 2px 12px; cursor:pointer; color:#e0e0e0; }
+#tree .file:hover { color:#c15f3c; }
 #content { flex:1; display:flex; flex-direction:column; padding:12px; overflow:auto; }
-#title { background:#2d2d2d; color:#fff; border:1px solid #444; padding:8px; font-size:18px; border-radius:6px; margin-bottom:8px; }
+#title { background:#0c0c0c; color:#e0e0e0; border:1px solid #2a2a2a; border-top:2px solid #c15f3c; padding:8px; font-size:16px; border-radius:4px; margin-bottom:8px; font-family:inherit; }
 .props { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
-.props .chip { background:#2d2d2d; border:1px solid #444; border-radius:14px; padding:3px 10px; font-size:12px; }
-.props .chip b { color:#9cdcfe; }
-#editor { flex:1; background:#2d2d2d; border:1px solid #444; border-radius:6px; padding:12px; overflow:auto; outline:none; line-height:1.5; }
-#editor h1,#editor h2,#editor h3 { color:#fff; }
-#editor a { color:#4ec9b0; cursor:pointer; }
-#editor oasys-note, #editor oasys-graph, #editor oasys-node, #editor oasys-edge { display:block; }
-.embed-graph { background:#161616; border:1px solid #444; border-radius:6px; margin:8px 0; }
-#backlinks { margin-top:10px; font-size:13px; color:#888; border-top:1px dashed #444; padding-top:8px; }
-#backlinks b { color:#bbb; }
-#sidepanel { width:320px; background:#212121; border-left:1px solid #333; padding:12px; overflow:auto; }
-#sidepanel pre { background:#1e1e1e; border:1px solid #444; border-radius:6px; padding:10px; overflow:auto; font-size:12px; }
-#graph { position:fixed; inset:45px 0 0 0; background:#111; z-index:5; }
-#aiPanel { position:fixed; right:0; top:45px; bottom:0; width:400px; background:#252526; border-left:1px solid #444; padding:12px; display:flex; flex-direction:column; gap:8px; z-index:10; }
-#aiPanel textarea { flex:1; background:#2d2d2d; color:#ddd; border:1px solid #444; border-radius:6px; padding:8px; resize:none; }
-#aiDiff { background:#1e1e1e; border:1px solid #444; border-radius:6px; padding:8px; overflow:auto; max-height:45%; white-space:pre-wrap; font-size:12px; }
-.hint { font-size:12px; color:#999; margin:0; }
-.row { display:flex; gap:8px; }
+.props .chip { background:#0c0c0c; border:1px solid #2a2a2a; border-radius:12px; padding:3px 10px; font-size:11px; color:#e0e0e0; }
+.props .chip b { color:#c15f3c; }
+#editor { flex:1; background:#0c0c0c; border:1px solid #2a2a2a; border-radius:4px; padding:12px; overflow:auto; outline:none; line-height:1.6; font-size:14px; }
+#editor h1,#editor h2,#editor h3 { color:#e0e0e0; border-bottom:1px solid #2a2a2a; padding-bottom:4px; }
+#editor h1 { color:#c15f3c; }
+#editor a { color:#c15f3c; cursor:pointer; }
+#editor a:hover { text-decoration:underline; }
+#backlinks { margin-top:10px; font-size:12px; color:#666666; border-top:1px dashed #2a2a2a; padding-top:8px; }
+#backlinks b { color:#c15f3c; }
+#sidepanel { width:340px; background:#0c0c0c; border-left:1px solid #2a2a2a; padding:12px; overflow:auto; }
+#sidepanel pre { background:#101010; border:1px solid #2a2a2a; border-radius:4px; padding:10px; overflow:auto; font-size:12px; color:#e0e0e0; }
+.mono { font-family:inherit; }
+#graph { position:fixed; inset:45px 0 0 0; background:#0c0c0c; z-index:5; }
