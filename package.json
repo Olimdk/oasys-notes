@@ -1,12 +1,14 @@
 {
   "name": "oasys-notes",
-  "version": "0.1.0",
-  "description": "Local-first, Obsidian-style notes with typed structure and AI integration.",
-  "type": "commonjs",
-  "main": "server.js",
+  "version": "0.2.0",
+  "description": "Local-first, Obsidian-style notes with typed structure and AI integration. Native desktop app (Electron) — no server, no localhost.",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "electron .",
     "test": "node --test"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
   },
   "license": "MIT"
 }

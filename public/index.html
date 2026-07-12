@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>OASys Notes</title>
-<link rel="stylesheet" href="/style.css"/>
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 <header>
@@ -28,7 +28,7 @@
 </main>
 <div id="aiPanel" hidden>
   <h3>Local AI edit</h3>
-  <p class="hint">Proposes a change; you approve &amp; it writes (or patches one field).</p>
+  <p class="hint">Runs against a local model (Ollama) if available. Proposes a change; you approve &amp; it writes (PATCH).</p>
   <textarea id="aiPrompt" placeholder="e.g. set status to done and add tag 'shipped'"></textarea>
   <div class="row">
     <button id="aiRun">Generate</button>
@@ -37,6 +37,6 @@
   </div>
   <pre id="aiDiff"></pre>
 </div>
-<script src="/app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

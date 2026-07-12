@@ -1,20 +1,15 @@
 # OASys Notes
 
-A local-first, Obsidian-style note-taking app where every note is a **plain
-file on disk** with an optional **typed structure** (frontmatter). You write
-notes like normal Markdown, but you can also attach validated, machine-readable
-fields — which is what lets a local AI read and *edit* notes precisely instead
-of guessing from prose.
+A **local-first, native desktop** note-taking app — the spiritual successor to
+Obsidian you described: plain `.md` files on disk, `[[wikilinks]]`, a graph
+view, and **typed structure** so a local AI can read and edit notes precisely.
 
-- 📁 Real `.md` files in a `vault/` folder (agent-writable, no database lock-in)
-- 🔗 `[[wikilinks]]`, `![[embeds]]`, backlinks
-- 🧩 **Typed notes**: `type` selects a schema in `schemas/` (enum / date / list validation)
-- 🕸 Force-directed **graph view**
-- 🤖 **AI integration**: precise field-level `PATCH` (schema-validated) plus a
-  diff+approve edit flow. Works with a local model (Ollama) or any agent that
-  can call the REST API.
-- 🎨 **Advanced structures**: notes can carry structured data (a "CSS-like"
-  separation of presentation from content) so the UI and AI treat them as objects.
+> **Not a website.** There is no HTTP server and nothing listens on localhost.
+> The app is a native desktop window (Electron) that reads and writes your
+> `vault/` folder directly through the file system in the main process. The
+> frontend (HTML/CSS/JS) runs inside the app window and talks to the engine
+> via a narrow, safe IPC bridge (`preload.js`) — never over the network.
 
-## Run
+## Why plain files + typed frontmatter?
+You write notes like normal Markdown:
 

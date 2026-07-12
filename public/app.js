@@ -1,8 +1,24 @@
-// ---- OASys Notes SPA ----
+// ---- OASys Notes SPA (renderer) ----
+// Talks to the main process via window.oasys — NEVER over HTTP/localhost.
 const state = { current: null, index: [] };
 let rawBody = '';
 const $ = id => document.getElementById(id);
-async function api(path, opts) { const r = await fetch(path, opts); return r.json(); }
+
+async function api(p, opts) {
+  opts = opts || {};
+  const m = opts.method || 'GET';
+  if (p === '/api/tree') return window.oasys.list();
+  if (p === '/api/index') return window.oasys.index();
+  if (p === '/api/graph') return window.oasys.graph();
+  if (p === '/api/schemas') return window.oasys.schemas();
+  if (p.startsWith('/api/note/')) {
+    const rel = decodeURIComponent(p.replace('/api/note/', ''));
+    if (m === 'PUT') return window.oasys.write(rel, JSON.parse(opts.body));
+    if (m === 'PATCH') return window.oasys.patch(rel, JSON.parse(opts.body).props);
+    return window.oasys.read(rel);
+  }
+  throw new Error('unknown ' + p);
+}
 
 function renderTree(files) {
   const tree = $('tree'); tree.innerHTML = '';
@@ -47,8 +63,8 @@ function resolveLink(target) {
 }
 async function openFile(rel) {
   state.current = rel;
-  const n = await api('/api/note/' + encodeURIComponent(rel));
-  if (n.error) return;
+  const n = await window.oasys.read(rel);
+  if (!n || n.error) return;
   rawBody = n.body || '';
   $('title').value = n.props.title || rel.replace(/\.md$/, '').split('/').pop();
   const skip = ['type', 'title'];
@@ -64,8 +80,7 @@ async function openFile(rel) {
 async function createNote(title) {
   const rel = title.replace(/[^\w -]/g, '') + '.md';
   const type = prompt('Type (note/project/person):', 'note') || 'note';
-  await api('/api/note/' + encodeURIComponent(rel), { method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, props: { title }, body: '# ' + title + '\n\n' }) });
+  await window.oasys.write(rel, { type, props: { title }, body: '# ' + title + '\n\n' });
   await refresh(); openFile(rel);
 }
 $('editor').addEventListener('blur', () => { if (state.current) rawBody = $('editor').innerText; });
@@ -75,7 +90,7 @@ let graphData = null;
 $('graphBtn').onclick = async () => {
   const c = $('graph');
   if (!c.hidden) { c.hidden = true; return; }
-  c.hidden = false; graphData = await api('/api/graph'); drawGraph();
+  c.hidden = false; graphData = await window.oasys.graph(); drawGraph();
 };
 function drawGraph() {
   const c = $('graph'); const ctx = c.getContext('2d');
@@ -108,7 +123,7 @@ function drawGraph() {
 }
 $('jsonBtn').onclick = () => {
   const sp = $('sidepanel'); sp.hidden = !sp.hidden;
-  if (!sp.hidden && state.current) api('/api/note/' + encodeURIComponent(state.current)).then(showJSON);
+  if (!sp.hidden && state.current) window.oasys.read(state.current).then(showJSON);
 };
 function showJSON(n) {
   const { rel, backlinks, body, ...rest } = n;
@@ -122,18 +137,23 @@ $('aiRun').onclick = async () => {
   const prompt = $('aiPrompt').value; const props = {};
   const m = prompt.match(/status\s+(?:to\s+)?(\w+)/i); if (m) props.status = m[1];
   const t = prompt.match(/tag\s+['"]?([\w-]+)['"]?/i);
-  if (t) { const n = await api('/api/note/' + encodeURIComponent(state.current));
+  if (t) { const n = await window.oasys.read(state.current);
     const tags = Array.isArray(n.props.tags) ? [...n.props.tags] : []; if (!tags.includes(t[1])) tags.push(t[1]); props.tags = tags; }
+  // If Ollama is available, ask the local model to refine the proposal.
+  try {
+    const ai = await window.oasys.ai({ model: 'llama3.1', prompt: `Current note fields: ${JSON.stringify(props)}. Instruction: ${prompt}. Return only the JSON fields to change.` });
+    if (ai && ai.ok) { try { Object.assign(props, JSON.parse(ai.text)); } catch {} }
+  } catch {}
   _patch = { rel: state.current, props };
   $('aiDiff').textContent = 'PATCH ' + state.current + '\n' + JSON.stringify(props, null, 2);
   $('aiApply').disabled = false;
 };
 $('aiApply').onclick = async () => {
   if (!_patch) return;
-  const r = await api('/api/note/' + encodeURIComponent(_patch.rel), { method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ props: _patch.props }) });
-  if (r.error) { alert('Validation: ' + (r.details || r.error).join('\n')); return; }
+  try {
+    await window.oasys.patch(_patch.rel, _patch.props);
+  } catch (e) { alert('Validation: ' + (e.details || e.message).join('\n')); return; }
   $('aiPanel').hidden = true; $('aiApply').disabled = true; openFile(_patch.rel);
 };
-async function refresh() { state.index = await api('/api/index'); renderTree(await api('/api/tree')); }
+async function refresh() { state.index = await window.oasys.index(); renderTree(await window.oasys.list()); }
 refresh().then(() => openFile('Index.md'));
