@@ -1,9 +1,0 @@
-{
-  "name": "note",
-  "description": "A plain note with optional typed fields.",
-  "fields": {
-    "title": { "type": "string" },
-    "tags":  { "type": "list" },
-    "status": { "type": "enum", "values": ["draft", "active", "done"], "default": "draft" }
-  }
-}

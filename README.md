@@ -1,15 +1,29 @@
-# OASys Notes
+# OASYS Notes
 
-A **local-first, native desktop** note-taking app — an Obsidian-style clone that
-uses the **same plain `.md` file system as Obsidian**, with typed structure on
-top. Styled to match the **OASys TUI** theme.
+A local-first, Obsidian-style note-taking app with typed structure, wikilinks,
+backlinks, and a graph view. Native desktop app built with **Tauri** (Rust backend
++ Vite/TypeScript frontend), styled with the **eDex** dark-space aesthetic used
+across oasysOS.
 
-> **No server, no localhost.** It is a native desktop window (Electron) that
-> reads/writes your `vault/` folder directly through the file system. The UI
-> talks to the engine via a narrow IPC bridge.
+Notes are plain `.md` files with YAML frontmatter — fully Obsidian-compatible, so
+any local agent (OASYS, etc.) can read/write the vault directly.
 
-> **No in-app AI UI.** Editing is done by *any AI/agent with system access*
-> (e.g. OASYS) by writing or patching the `.md` files directly — the same files
-> Obsidian reads. OASYS can create a note here and Obsidian picks it up instantly.
+## Roadmap
+- [x] Open local vault
+- [x] Markdown notes with typed frontmatter (note / project / person)
+- [x] `[[wikilinks]]` + backlinks
+- [x] Folder tree + search
+- [x] Graph view (canvas)
+- [ ] Offline-first sync (SMB / WebDAV / self-hosted server) with push-on-reconnect
+- [ ] ooo-logo branding
+- [ ] Real-time FS watcher so agent edits show up live
 
-## Notes are plain Markdown (Obsidian-compatible)
+## Dev
+    npm install
+    npm run tauri dev
+
+## Build
+    npm run tauri build
+
+## License
+MIT © 2026 Oliver

@@ -1,14 +1,21 @@
 {
   "name": "oasys-notes",
-  "version": "0.2.0",
-  "description": "Local-first, Obsidian-style notes with typed structure and AI integration. Native desktop app (Electron) — no server, no localhost.",
-  "main": "main.js",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "start": "electron .",
-    "test": "node --test"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "electron": "^31.0.0"
+    "@tauri-apps/cli": "^2",
+    "typescript": "^5",
+    "vite": "^5"
   },
-  "license": "MIT"
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-fs": "^2"
+  }
 }

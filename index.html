@@ -1,32 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>OASys Notes</title>
-<link rel="stylesheet" href="style.css"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OASYS Notes</title>
+<link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
 <header>
-  <strong class="brand">▌ OASys Notes</strong>
+  <strong class="brand">◯◯◯ OASYS Notes</strong>
+  <button id="openBtn">Open Vault</button>
   <input id="search" placeholder="search notes…" />
   <span class="spacer"></span>
   <button id="newBtn">+ New</button>
   <button id="graphBtn">Graph</button>
-  <button id="jsonBtn">JSON</button>
+  <button id="syncBtn">Sync</button>
 </header>
 <main>
   <aside id="tree"></aside>
   <section id="content">
-    <input id="title" placeholder="note title" disabled/>
+    <input id="title" placeholder="note title" disabled />
     <div id="props" class="props"></div>
-    <div id="editor" contenteditable="true"></div>
+    <div id="editor" contenteditable="true" spellcheck="false"></div>
     <div id="backlinks"></div>
   </section>
-  <aside id="sidepanel" hidden></aside>
   <canvas id="graph" hidden></canvas>
 </main>
 <div id="ctxMenu" class="ctx-menu" hidden></div>
-<script src="app.js"></script>
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>
