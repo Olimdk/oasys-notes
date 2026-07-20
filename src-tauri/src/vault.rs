@@ -160,10 +160,15 @@ fn read_all(root: &Path) -> Result<Vec<Note>, String> {
         let links = extract_links(&p.body);
         notes.push(Note { rel: rel.clone(), title, note_type: p.note_type, body: p.body, props: p.props, links, backlinks: vec![] });
     }
+    // Backlinks: collect (rel, titles-linked) first to avoid double borrow.
+    let links_by_rel: Vec<(String, Vec<String>)> = notes
+        .iter()
+        .map(|n| (n.rel.clone(), n.links.clone()))
+        .collect();
     for n in notes.iter_mut() {
-        for other in notes.iter() {
-            if other.rel != n.rel && other.links.contains(&n.title) {
-                n.backlinks.push(other.rel.clone());
+        for (other_rel, other_links) in &links_by_rel {
+            if other_rel != &n.rel && other_links.contains(&n.title) {
+                n.backlinks.push(other_rel.clone());
             }
         }
     }
